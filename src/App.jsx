@@ -242,6 +242,22 @@ function App() {
         <p className="mt-2 text-sm text-slate-600">
           ドラッグ&ドロップまたはボタンから選択してください。
         </p>
+        <div className="mt-4 rounded-xl border border-slate-200 bg-pink-100 p-4">
+          <div className="grid gap-4 sm:grid-cols-[1.2fr_0.8fr] sm:items-center">
+            <p className="text-center text-sm leading-6 text-slate-600 sm:text-left">
+              OFFICIAL SHOPの画像は画質が低く処理できません。<br/>
+              NEWSページや公式Xの投稿から取得できる右図のような画像をアップロードしてください。<br/>
+              なお，画質が低すぎると正しく処理できない場合があります。
+            </p>
+            <div className="flex justify-center sm:justify-end h-80">
+              <img
+                src={`${basePath}upload_sample.jpg`}
+                alt="処理例の画像"
+                className="block rounded-lg border border-slate-200 bg-white object-contain p-2 shadow-sm sm:h-full"
+              />
+            </div>
+          </div>
+        </div>
 
         <input
           ref={inputRef}
