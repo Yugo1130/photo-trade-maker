@@ -12,6 +12,7 @@ function App() {
   const inputRef = useRef(null)
   const workerRef = useRef(null)
   const [file, setFile] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState('')
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState('')
   const [workerStatus, setWorkerStatus] = useState('待機中')
@@ -58,13 +59,20 @@ function App() {
     if (!file) {
       setWorkerResult(null)
       setWorkerStatus('待機中')
+      setPreviewUrl('')
       return
     }
 
+    const nextPreviewUrl = URL.createObjectURL(file)
+    setPreviewUrl(nextPreviewUrl)
     setWorkerStatus('送信中...')
     setWorkerResult(null)
     // workerにファイルを送信して処理を開始
     workerRef.current?.postMessage({ type: 'process-file', file })
+
+    return () => {
+      URL.revokeObjectURL(nextPreviewUrl)
+    }
   }, [file])
 
   const formattedSize = useMemo(() => {
@@ -181,24 +189,103 @@ function App() {
           {workerResult ? (
             <div className="mt-2 text-xs text-slate-600">
               <p>ファイル種別: {workerResult.mimeType || 'unknown'}</p>
-              <p>バイト数: {workerResult.byteLength}</p>
-              <p>処理方式: {workerResult.processedBy || 'unknown'}</p>
+              {/* <p>バイト数: {workerResult.byteLength}</p> */}
+              {/* <p>処理方式: {workerResult.processedBy || 'unknown'}</p> */}
               {workerResult.width && workerResult.height ? (
                 <p>
                   画像サイズ: {workerResult.width} x {workerResult.height}
                 </p>
               ) : null}
-              {typeof workerResult.meanBrightness === 'number' ? (
+              {/* {typeof workerResult.meanBrightness === 'number' ? (
                 <>
                   <p>平均輝度(0-255): {workerResult.meanBrightness}</p>
                   {typeof workerResult.stdDev === 'number' ? (
                     <p>標準偏差: {workerResult.stdDev}</p>
                   ) : null}
                 </>
-              ) : null}
+              ) : null} */}
+              {/* {typeof workerResult.edgePixelCount === 'number' ? (
+                <p>エッジ画素数: {workerResult.edgePixelCount}</p>
+              ) : null} */}
+              {/* {typeof workerResult.edgeDensityBeforeMorph === 'number' ? (
+                <p>エッジ密度(前処理前): {workerResult.edgeDensityBeforeMorph}</p>
+              ) : null} */}
+              {/* {typeof workerResult.componentCount === 'number' ? (
+                <p>コンポーネント数: {workerResult.componentCount}</p>
+              ) : null} */}
             </div>
           ) : null}
         </div>
+
+        {previewUrl && workerResult?.width && workerResult?.height ? (
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-950/5 p-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">検出プレビュー</p>
+                <p className="text-xs text-slate-500">
+                  赤枠が検出結果です。番号を振っているので、後で個別入力に使えます。
+                </p>
+              </div>
+              <p className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                {workerResult.detections?.length || 0} 枠
+              </p>
+            </div>
+
+            <div className="relative overflow-hidden rounded-lg border border-slate-300 bg-white">
+              <img
+                src={previewUrl}
+                alt="アップロード画像のプレビュー"
+                className="block h-auto w-full"
+              />
+
+              <div className="pointer-events-none absolute inset-0">
+                {workerResult.detections?.map((detection, index) => (
+                  <div
+                    key={`${detection.x}-${detection.y}-${index}`}
+                    className="absolute border-2 border-red-500 bg-red-500/10"
+                    style={{
+                      left: `${detection.xPercent}%`,
+                      top: `${detection.yPercent}%`,
+                      width: `${detection.widthPercent}%`,
+                      height: `${detection.heightPercent}%`,
+                    }}
+                  >
+                    <span className="absolute left-0 top-0 flex min-w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                      {index + 1}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {workerResult?.debugStages?.length ? (
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+            <p className="text-sm font-semibold text-slate-900">画像処理デバッグ</p>
+            <p className="mt-1 text-xs text-slate-500">
+              どの段階で画像がどう変化したかを確認できます。
+            </p>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {workerResult.debugStages.map((stage) => (
+                <div
+                  key={stage.name}
+                  className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
+                >
+                  <p className="border-b border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">
+                    {stage.name}
+                  </p>
+                  <img
+                    src={stage.dataUrl}
+                    alt={stage.name}
+                    className="block h-auto w-full"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   )
