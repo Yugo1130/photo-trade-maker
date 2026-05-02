@@ -237,14 +237,11 @@ async function processImageWithOpenCv(file) {
     debugStages.push(await matToDebugStage(edges, '04-canny-edges'))
 
     const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(7, 7))
-    if (bitmap.width * bitmap.height > 400 * 400) {
-        cv.dilate(edges, edges, kernel)
-        debugStages.push(await matToDebugStage(edges, '05-dilate'))
-    }
-    if (bitmap.width * bitmap.height > 1000 * 1000) {
-        cv.morphologyEx(edges, edges, cv.MORPH_CLOSE, kernel)
-        debugStages.push(await matToDebugStage(edges, '06-close-mask'))
-    }
+    cv.dilate(edges, edges, kernel)
+    debugStages.push(await matToDebugStage(edges, '05-dilate'))
+    
+    cv.morphologyEx(edges, edges, cv.MORPH_CLOSE, kernel)
+    debugStages.push(await matToDebugStage(edges, '06-close-mask'))
 
     kernel.delete()
 

@@ -15,7 +15,7 @@ function App() {
   const [previewUrl, setPreviewUrl] = useState('')
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState('')
-  const [workerStatus, setWorkerStatus] = useState('待機中')
+  const [workerStatus, setWorkerStatus] = useState(null)
   const [workerResult, setWorkerResult] = useState(null)
 
   // 画面が描画された後に実行する処理
@@ -32,19 +32,18 @@ function App() {
       const { type, payload, message } = event.data || {}
 
       if (type === 'processing') {
-        setWorkerStatus('Workerで処理中...')
+        setWorkerStatus('processing')
         return
       }
 
       if (type === 'processed') {
-        setWorkerStatus('Worker処理完了')
         setWorkerResult(payload)
         return
       }
 
       if (type === 'error') {
-        setWorkerStatus('Worker処理失敗')
-        setError(message || 'Worker処理に失敗しました')
+        setWorkerStatus('error')
+        setError(message || '処理に失敗しました')
       }
     }
 
@@ -58,14 +57,12 @@ function App() {
   useEffect(() => {
     if (!file) {
       setWorkerResult(null)
-      setWorkerStatus('待機中')
       setPreviewUrl('')
       return
     }
 
     const nextPreviewUrl = URL.createObjectURL(file)
     setPreviewUrl(nextPreviewUrl)
-    setWorkerStatus('送信中...')
     setWorkerResult(null)
     // workerにファイルを送信して処理を開始
     workerRef.current?.postMessage({ type: 'process-file', file })
@@ -139,14 +136,12 @@ function App() {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`mt-6 rounded-xl border-2 border-dashed p-8 text-center transition ${
-            isDragging
+          className={`mt-6 rounded-xl border-2 border-dashed p-8 text-center transition ${isDragging
               ? 'border-blue-500 bg-blue-50 text-blue-700'
               : 'border-slate-300 bg-slate-50 text-slate-700'
-          }`}
+            }`}
         >
           <p className="text-sm font-medium">ここに画像ファイルをドラッグ&ドロップ</p>
-          <p className="mt-1 text-xs text-slate-500">対応形式: 画像ファイル</p>
 
           <button
             type="button"
@@ -181,40 +176,6 @@ function App() {
           ) : (
             <p className="text-sm text-slate-500">まだファイルは選択されていません</p>
           )}
-        </div>
-
-        <div className="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-3">
-          <p className="text-xs font-semibold text-slate-500">Worker ステータス</p>
-          <p className="mt-1 text-sm text-slate-800">{workerStatus}</p>
-          {workerResult ? (
-            <div className="mt-2 text-xs text-slate-600">
-              <p>ファイル種別: {workerResult.mimeType || 'unknown'}</p>
-              {/* <p>バイト数: {workerResult.byteLength}</p> */}
-              {/* <p>処理方式: {workerResult.processedBy || 'unknown'}</p> */}
-              {workerResult.width && workerResult.height ? (
-                <p>
-                  画像サイズ: {workerResult.width} x {workerResult.height}
-                </p>
-              ) : null}
-              {/* {typeof workerResult.meanBrightness === 'number' ? (
-                <>
-                  <p>平均輝度(0-255): {workerResult.meanBrightness}</p>
-                  {typeof workerResult.stdDev === 'number' ? (
-                    <p>標準偏差: {workerResult.stdDev}</p>
-                  ) : null}
-                </>
-              ) : null} */}
-              {/* {typeof workerResult.edgePixelCount === 'number' ? (
-                <p>エッジ画素数: {workerResult.edgePixelCount}</p>
-              ) : null} */}
-              {/* {typeof workerResult.edgeDensityBeforeMorph === 'number' ? (
-                <p>エッジ密度(前処理前): {workerResult.edgeDensityBeforeMorph}</p>
-              ) : null} */}
-              {/* {typeof workerResult.componentCount === 'number' ? (
-                <p>コンポーネント数: {workerResult.componentCount}</p>
-              ) : null} */}
-            </div>
-          ) : null}
         </div>
 
         {previewUrl && workerResult?.width && workerResult?.height ? (
@@ -258,9 +219,17 @@ function App() {
               </div>
             </div>
           </div>
-        ) : null}
+        ) :
+          <p className="mt-6 flex items-center gap-2 text-sm text-slate-800">
+            {workerStatus === 'processing' && (
+              <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
+            )}
+            {workerStatus === 'processing' ? '画像を処理しています...' : null}
+          </p>
 
-        {workerResult?.debugStages?.length ? (
+        }
+
+        {/* {workerResult?.debugStages?.length ? (
           <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
             <p className="text-sm font-semibold text-slate-900">画像処理デバッグ</p>
             <p className="mt-1 text-xs text-slate-500">
@@ -285,7 +254,7 @@ function App() {
               ))}
             </div>
           </div>
-        ) : null}
+        ) : null} */}
       </section>
     </main>
   )
