@@ -17,6 +17,126 @@ function App() {
   const [error, setError] = useState('')
   const [workerStatus, setWorkerStatus] = useState(null)
   const [workerResult, setWorkerResult] = useState(null)
+  const previewRef = useRef(null)
+  const [annotations, setAnnotations] = useState({}) // { [index]: label }
+  const basePath = import.meta.env.BASE_URL || '/'
+
+  function assetPathForLabel(label) {
+    if (label === '求') return `${basePath}heart_request.png`
+    if (label === undefined || label === 0 || label === '') return null
+    return `${basePath}${label}.png`
+  }
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => resolve(img)
+      img.onerror = reject
+      img.src = src
+    })
+  }
+
+  function incrementLabel(index) {
+    setAnnotations((prev) => {
+      const cur = prev[index]
+      // if current is '求', + resets to 0
+      if (cur === '求') {
+        return { ...prev, [index]: 0 }
+      }
+      const num = typeof cur === 'number' ? cur : (cur ? Number(cur) : 0)
+      const next = Math.min(10, (Number.isFinite(num) ? num : 0) + 1)
+      return { ...prev, [index]: next }
+    })
+  }
+
+  function decrementLabel(index) {
+    setAnnotations((prev) => {
+      const cur = prev[index]
+      if (cur === '求') {
+        return prev // no change
+      }
+      const num = typeof cur === 'number' ? cur : (cur ? Number(cur) : 0)
+      if (!Number.isFinite(num)) {
+        return prev
+      }
+      if (num > 0) {
+        return { ...prev, [index]: Math.max(0, num - 1) }
+      }
+      // num === 0 and user pressed -, switch to '求'
+      return { ...prev, [index]: '求' }
+    })
+  }
+
+  async function downloadAnnotatedImage() {
+    if (!previewUrl || !workerResult) return
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.src = previewUrl
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej })
+
+    const canvas = document.createElement('canvas')
+    canvas.width = img.naturalWidth
+    canvas.height = img.naturalHeight
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0)
+
+    // 描画スタイル
+    ctx.lineWidth = Math.max(2, Math.round(canvas.width / 300))
+    ctx.strokeStyle = 'red'
+    ctx.fillStyle = 'red'
+    const fontSize = Math.max(12, Math.round(canvas.width / 40))
+    ctx.font = `${fontSize}px sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+
+    const detections = (workerResult.detections || [])
+    for (let index = 0; index < detections.length; index += 1) {
+      const d = detections[index]
+      const x = (d.xPercent / 100) * canvas.width
+      const y = (d.yPercent / 100) * canvas.height
+      const w = (d.widthPercent / 100) * canvas.width
+      const h = (d.heightPercent / 100) * canvas.height
+
+      // ユーザ注釈があれば枠の下端を基準に画像で描画
+      const label = annotations[index]
+      const asset = assetPathForLabel(label)
+      if (asset) {
+        try {
+          const imgIcon = await loadImage(asset)
+          const cx = x + w / 2
+          // サイズは枠横幅の60%
+          const size =  w * 0.6
+          const half = size / 2
+          // 枠の下端を基準に少し下に置く
+          const drawY = y + h - half - 4
+          // 下にはみ出す場合は上に置く
+          // const drawY = (preferredY + half > canvas.height) ? (y - half - 4) : preferredY
+          ctx.drawImage(imgIcon, cx - size / 2, drawY - size / 2, size, size)
+        } catch (err) {
+          // 画像ロード失敗時は文字で代替
+          const cx = x + w / 2
+          let cy = y + h + Math.max(fontSize, 12) + 4
+          if (cy + Math.max(fontSize, 12) > canvas.height) cy = y - Math.max(fontSize, 12) - 4
+          ctx.fillStyle = 'red'
+          ctx.fillText(String(label), cx, cy)
+          ctx.fillStyle = 'red'
+        }
+      }
+    }
+
+    canvas.toBlob((blob) => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `annotated-${file?.name || 'image'}`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    }, 'image/png')
+  }
 
   // 画面が描画された後に実行する処理
   useEffect(() => {
@@ -180,30 +300,33 @@ function App() {
 
         {previewUrl && workerResult?.width && workerResult?.height ? (
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-950/5 p-3">
-            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">検出プレビュー</p>
                 <p className="text-xs text-slate-500">
-                  赤枠が検出結果です。番号を振っているので、後で個別入力に使えます。
+                  赤枠は検出された領域を示しています。<br/>
+                  枠内に表示された +/- ボタンでラベルを付けることができます。<br/>
+                  「-」ボタンで「求」、「+」ボタンで「1」〜「10」を選択できます。<br/>
+                  ラベルを付けた画像は「画像をダウンロード」ボタンから保存できます。
                 </p>
               </div>
-              <p className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-                {workerResult.detections?.length || 0} 枠
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">{workerResult.detections?.length || 0} 枠</p>
+                <button onClick={downloadAnnotatedImage} className="rounded-md bg-slate-900 px-3 py-1 text-sm font-semibold text-white">画像をダウンロード</button>
+              </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-lg border border-slate-300 bg-white">
+            <div ref={previewRef} className="relative overflow-hidden rounded-lg border border-slate-300 bg-white">
               <img
                 src={previewUrl}
                 alt="アップロード画像のプレビュー"
                 className="block h-auto w-full"
               />
 
-              <div className="pointer-events-none absolute inset-0">
+              <div className="absolute inset-0">
                 {workerResult.detections?.map((detection, index) => (
                   <div
                     key={`${detection.x}-${detection.y}-${index}`}
-                    className="absolute border-2 border-red-500 bg-red-500/10"
+                    className="absolute cursor-pointer border-2 border-red-500 bg-red-500/10 z-10"
                     style={{
                       left: `${detection.xPercent}%`,
                       top: `${detection.yPercent}%`,
@@ -211,12 +334,44 @@ function App() {
                       height: `${detection.heightPercent}%`,
                     }}
                   >
-                    <span className="absolute left-0 top-0 flex min-w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
-                      {index + 1}
-                    </span>
+                    {/* left-top の番号は表示しない */}
+
+                    {/* 選択済みラベルを表示（枠の中心上に） */}
+                    {annotations[index] !== undefined && annotations[index] !== 0 && (
+                      <div
+                        style={{ left: '50%', top: `${detection.yPercent + detection.heightPercent}%`, transform: 'translate(-50%,-50%)' }}
+                        className="absolute"
+                      >
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full">
+                          {(() => {
+                            const asset = assetPathForLabel(annotations[index])
+                            return asset ? (
+                              <img
+                                src={asset}
+                                alt={String(annotations[index])}
+                                className="object-contain"
+                                style={{ width: `${detection.widthPercent * 0.6}%`, height: `${detection.widthPercent * 0.6}%` }}
+                              />
+                            ) : null
+                          })()}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* -/+ コントロール（枠の右下） */}
+                    <div className="absolute right-1 bottom-1 flex flex-col items-center gap-1 bg-white/80 rounded">
+                      <button onClick={(e) => { e.stopPropagation(); incrementLabel(index) }} className="text-xs px-2 py-0.5">+</button>
+                      <div className="text-xs font-medium px-1">{(() => {
+                        const asset = assetPathForLabel(annotations[index])
+                        return asset ? <img src={asset} alt={String(annotations[index])} className="h-4 w-4 object-contain" /> : ''
+                      })()}</div>
+                      <button onClick={(e) => { e.stopPropagation(); decrementLabel(index) }} className="text-xs px-2 py-0.5">−</button>
+                    </div>
                   </div>
                 ))}
               </div>
+              {/* 背景クリック（何もしない） */}
+              <div className="absolute inset-0 z-0" />
             </div>
           </div>
         ) :
