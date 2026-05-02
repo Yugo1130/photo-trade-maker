@@ -20,9 +20,11 @@ function App() {
   // 画面が描画された後に実行する処理
   useEffect(() => {
     // worker作成
-    const worker = new Worker(new URL('./fileProcessorWorker.js', import.meta.url), {
-      type: 'module',
-    })
+    const worker = new Worker(new URL('./fileProcessorWorker.js', import.meta.url))
+
+    // base パスを取得して Worker に送信
+    const basePath = import.meta.env.BASE_URL || '/'
+    worker.postMessage({ type: 'init', basePath })
 
     // workerからのメッセージを受け取る
     worker.onmessage = (event) => {
@@ -180,10 +182,19 @@ function App() {
             <div className="mt-2 text-xs text-slate-600">
               <p>ファイル種別: {workerResult.mimeType || 'unknown'}</p>
               <p>バイト数: {workerResult.byteLength}</p>
+              <p>処理方式: {workerResult.processedBy || 'unknown'}</p>
               {workerResult.width && workerResult.height ? (
                 <p>
                   画像サイズ: {workerResult.width} x {workerResult.height}
                 </p>
+              ) : null}
+              {typeof workerResult.meanBrightness === 'number' ? (
+                <>
+                  <p>平均輝度(0-255): {workerResult.meanBrightness}</p>
+                  {typeof workerResult.stdDev === 'number' ? (
+                    <p>標準偏差: {workerResult.stdDev}</p>
+                  ) : null}
+                </>
               ) : null}
             </div>
           ) : null}
