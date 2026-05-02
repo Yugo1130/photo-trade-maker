@@ -5,6 +5,9 @@ import babel from '@rolldown/plugin-babel'
 // https://vite.dev/config/
 export default defineConfig({
   base: '/photo-trade-maker/',
+  css: {
+    postcss: './postcss.config.js',
+  },
   plugins: [
     react(),
     babel({ presets: [reactCompilerPreset()] })
