@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const isAllowedFile = (file) => {
   if (!file) {
@@ -10,9 +10,68 @@ const isAllowedFile = (file) => {
 
 function App() {
   const inputRef = useRef(null)
+  const workerRef = useRef(null)
   const [file, setFile] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState('')
+  const [workerStatus, setWorkerStatus] = useState('待機中')
+  const [workerResult, setWorkerResult] = useState(null)
+
+  // 画面が描画された後に実行する処理
+  useEffect(() => {
+    // worker作成
+    const worker = new Worker(new URL('./fileProcessorWorker.js', import.meta.url), {
+      type: 'module',
+    })
+
+    // workerからのメッセージを受け取る
+    worker.onmessage = (event) => {
+      const { type, payload, message } = event.data || {}
+
+      if (type === 'processing') {
+        setWorkerStatus('Workerで処理中...')
+        return
+      }
+
+      if (type === 'processed') {
+        setWorkerStatus('Worker処理完了')
+        setWorkerResult(payload)
+        return
+      }
+
+      if (type === 'error') {
+        setWorkerStatus('Worker処理失敗')
+        setError(message || 'Worker処理に失敗しました')
+      }
+    }
+
+    workerRef.current = worker
+
+    return () => {
+      worker.terminate()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!file) {
+      setWorkerResult(null)
+      setWorkerStatus('待機中')
+      return
+    }
+
+    setWorkerStatus('送信中...')
+    setWorkerResult(null)
+    // workerにファイルを送信して処理を開始
+    workerRef.current?.postMessage({ type: 'process-file', file })
+  }, [file])
+
+  const formattedSize = useMemo(() => {
+    if (!file) {
+      return ''
+    }
+
+    return `${Math.round(file.size / 1024)} KB`
+  }, [file])
 
   const updateSelectedFile = (incomingFile) => {
     if (!incomingFile) {
@@ -99,7 +158,7 @@ function App() {
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-slate-800">{file.name}</p>
-                <p className="text-xs text-slate-500">{Math.round(file.size / 1024)} KB</p>
+                <p className="text-xs text-slate-500">{formattedSize}</p>
               </div>
               <button
                 type="button"
@@ -112,6 +171,22 @@ function App() {
           ) : (
             <p className="text-sm text-slate-500">まだファイルは選択されていません</p>
           )}
+        </div>
+
+        <div className="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-3">
+          <p className="text-xs font-semibold text-slate-500">Worker ステータス</p>
+          <p className="mt-1 text-sm text-slate-800">{workerStatus}</p>
+          {workerResult ? (
+            <div className="mt-2 text-xs text-slate-600">
+              <p>ファイル種別: {workerResult.mimeType || 'unknown'}</p>
+              <p>バイト数: {workerResult.byteLength}</p>
+              {workerResult.width && workerResult.height ? (
+                <p>
+                  画像サイズ: {workerResult.width} x {workerResult.height}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </section>
     </main>
