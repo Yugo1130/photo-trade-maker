@@ -77,6 +77,13 @@ function App() {
   }
 
   async function downloadAnnotatedImage() {
+    // Google Analytics イベントトラッキング
+    window.gtag?.('event', 'download_image', {
+      event_category: 'file',
+      event_label: file?.name || 'generated_image',
+      value: workerResult?.detections?.length || 0
+    })
+
     if (!previewUrl || !workerResult) return
     const img = new Image()
     img.crossOrigin = 'anonymous'
