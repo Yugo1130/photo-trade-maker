@@ -9,6 +9,13 @@ const isAllowedFile = (file) => {
   return file.type.startsWith('image/')
 }
 
+const modules = import.meta.glob('/src/assets/samples/*', {
+  eager: true,
+  import: 'default'
+})
+
+const images = Object.values(modules)
+
 function App() {
   const inputRef = useRef(null)
   const workerRef = useRef(null)
@@ -267,9 +274,25 @@ function App() {
       <section className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <h1 className="text-2xl font-bold text-slate-900">ファイルアップロード</h1>
         <p className="mt-2 text-sm text-slate-600">
-          ドラッグ&ドロップまたはボタンから選択してください。<br/>
-          400×400ピクセル以上の画像をアップロードしてください。<br/>
+          ドラッグ&ドロップまたはボタンから選択してください。<br />
+          400×400ピクセル以上の画像をアップロードしてください。<br />
         </p>
+        <div className="mt-4 rounded-xl border border-slate-200 bg-pink-100 p-4">
+          <p className="text-sm mb-4 text-center sm:text-left">
+            以下のような背景が白色の画像に対応しています。
+          </p>
+
+          <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
+            {images.map((src, i) => (
+              <img
+                key={i}
+                src={src}
+                alt={`sample-${i}`}
+                className="h-48 object-contain rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
+              />
+            ))}
+          </div>
+        </div>
 
         <input
           ref={inputRef}
