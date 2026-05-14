@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+// ファイルが画像かどうかを判定する関数
 const isAllowedFile = (file) => {
   if (!file) {
     return false
@@ -7,6 +8,13 @@ const isAllowedFile = (file) => {
 
   return file.type.startsWith('image/')
 }
+
+const modules = import.meta.glob('/src/assets/samples/*', {
+  eager: true,
+  import: 'default'
+})
+
+const images = Object.values(modules)
 
 function App() {
   const inputRef = useRef(null)
@@ -69,6 +77,13 @@ function App() {
   }
 
   async function downloadAnnotatedImage() {
+    // Google Analytics イベントトラッキング
+    window.gtag?.('event', 'download_image', {
+      event_category: 'file',
+      event_label: file?.name || 'generated_image',
+      value: workerResult?.detections?.length || 0
+    })
+
     if (!previewUrl || !workerResult) return
     const img = new Image()
     img.crossOrigin = 'anonymous'
@@ -106,7 +121,7 @@ function App() {
           const imgIcon = await loadImage(asset)
           const cx = x + w / 2
           // サイズは枠横幅の60%
-          const size =  w * 0.6
+          const size = w * 0.6
           const half = size / 2
           // 枠の下端を基準に少し下に置く
           const drawY = y + h - half - 4
@@ -138,7 +153,7 @@ function App() {
     }, 'image/png')
   }
 
-  // 画面が描画された後に実行する処理
+  // 画面が描画された後に実行する処理（依存配列が空なので最初の1回だけ実行される）
   useEffect(() => {
     // worker作成
     const worker = new Worker(new URL('./fileProcessorWorker.js', import.meta.url))
@@ -158,6 +173,7 @@ function App() {
 
       if (type === 'processed') {
         setWorkerResult(payload)
+        setWorkerStatus(null)
         return
       }
 
@@ -174,10 +190,12 @@ function App() {
     }
   }, [])
 
+  // file stateが更新されるたびに実行される処理
   useEffect(() => {
     if (!file) {
       setWorkerResult(null)
       setPreviewUrl('')
+      setWorkerStatus(null)
       return
     }
 
@@ -200,6 +218,7 @@ function App() {
     return `${Math.round(file.size / 1024)} KB`
   }, [file])
 
+  // ファイル検証，file state更新
   const updateSelectedFile = (incomingFile) => {
     if (!incomingFile) {
       return
@@ -210,25 +229,47 @@ function App() {
       return
     }
 
+    // 400×400ピクセル以上の画像のみ許可
+    if (incomingFile.type.startsWith('image/')) {
+      const img = new Image()
+      img.onload = () => {
+        if (img.width < 400 || img.height < 400) {
+          setError('400×400ピクセル以上の画像をアップロードしてください')
+          return
+        }
+        setFile(incomingFile)
+        setError('')
+      }
+      img.onerror = () => {
+        setError('画像の読み込みに失敗しました')
+      }
+      img.src = URL.createObjectURL(incomingFile)
+      return
+    }
+
     setFile(incomingFile)
     setError('')
   }
 
+  // ファイル選択ボタンからの入力変更イベント
   const handleInputChange = (event) => {
     updateSelectedFile(event.target.files?.[0])
     event.target.value = ''
   }
 
+  // ドラッグオーバーイベント
   const handleDragOver = (event) => {
     event.preventDefault()
     setIsDragging(true)
   }
 
+  // ドラッグリーブイベント
   const handleDragLeave = (event) => {
     event.preventDefault()
     setIsDragging(false)
   }
 
+  // ファイルのドラッグ&ドロップイベント
   const handleDrop = (event) => {
     event.preventDefault()
     setIsDragging(false)
@@ -240,22 +281,23 @@ function App() {
       <section className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <h1 className="text-2xl font-bold text-slate-900">ファイルアップロード</h1>
         <p className="mt-2 text-sm text-slate-600">
-          ドラッグ&ドロップまたはボタンから選択してください。
+          ドラッグ&ドロップまたはボタンから選択してください。<br />
+          400×400ピクセル以上の画像をアップロードしてください。<br />
         </p>
         <div className="mt-4 rounded-xl border border-slate-200 bg-pink-100 p-4">
-          <div className="grid gap-4 sm:grid-cols-[1.2fr_0.8fr] sm:items-center">
-            <p className="text-center text-sm leading-6 text-slate-600 sm:text-left">
-              OFFICIAL SHOPの画像は画質が低く処理できません。<br/>
-              NEWSページや公式Xの投稿から取得できる右図のような画像をアップロードしてください。<br/>
-              なお，画質が低すぎると正しく処理できない場合があります。
-            </p>
-            <div className="flex justify-center sm:justify-end h-80">
+          <p className="text-sm mb-4 text-center sm:text-left">
+            以下のような背景が白色の画像に対応しています。
+          </p>
+
+          <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
+            {images.map((src, i) => (
               <img
-                src={`${basePath}upload_sample.jpg`}
-                alt="処理例の画像"
-                className="block rounded-lg border border-slate-200 bg-white object-contain p-2 shadow-sm sm:h-full"
+                key={i}
+                src={src}
+                alt={`sample-${i}`}
+                className="h-48 object-contain rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
               />
-            </div>
+            ))}
           </div>
         </div>
 
@@ -273,8 +315,8 @@ function App() {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`mt-6 rounded-xl border-2 border-dashed p-8 text-center transition ${isDragging
-              ? 'border-blue-500 bg-blue-50 text-blue-700'
-              : 'border-slate-300 bg-slate-50 text-slate-700'
+            ? 'border-blue-500 bg-blue-50 text-blue-700'
+            : 'border-slate-300 bg-slate-50 text-slate-700'
             }`}
         >
           <p className="text-sm font-medium">ここに画像ファイルをドラッグ&ドロップ</p>
@@ -316,17 +358,17 @@ function App() {
 
         {previewUrl && workerResult?.width && workerResult?.height ? (
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-950/5 p-3">
-              <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs text-slate-500">
-                  赤枠は検出された領域を示しています。<br/>
-                  枠内に表示された +/- ボタンでラベルを付けることができます。<br/>
-                  「-」ボタンで「求」、「+」ボタンで「1」〜「10」を選択できます。<br/>
+                  赤枠は検出された領域を示しています。<br />
+                  枠内に表示された +/- ボタンでラベルを付けることができます。<br />
+                  「-」ボタンで「求」、「+」ボタンで「1」〜「10」を選択できます。<br />
                   ラベルを付けた画像は「画像をダウンロード」ボタンから保存できます。
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <p className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">{workerResult.detections?.length || 0} 枠</p>
+                <p className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">検出数：{workerResult.detections?.length || 0}</p>
                 <button onClick={downloadAnnotatedImage} className="rounded-md bg-slate-900 px-3 py-1 text-sm font-semibold text-white">画像をダウンロード</button>
               </div>
             </div>
@@ -338,6 +380,7 @@ function App() {
                 className="block h-auto w-full"
               />
 
+              {/* 検出された領域を表示 */}
               <div className="absolute inset-0">
                 {workerResult.detections?.map((detection, index) => (
                   <div
