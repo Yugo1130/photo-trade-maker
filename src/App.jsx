@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+// ファイルが画像かどうかを判定する関数
 const isAllowedFile = (file) => {
   if (!file) {
     return false
@@ -138,7 +139,7 @@ function App() {
     }, 'image/png')
   }
 
-  // 画面が描画された後に実行する処理
+  // 画面が描画された後に実行する処理（依存配列が空なので最初の1回だけ実行される）
   useEffect(() => {
     // worker作成
     const worker = new Worker(new URL('./fileProcessorWorker.js', import.meta.url))
@@ -174,10 +175,12 @@ function App() {
     }
   }, [])
 
+  // file stateが更新されるたびに実行される処理
   useEffect(() => {
     if (!file) {
       setWorkerResult(null)
       setPreviewUrl('')
+      setWorkerStatus(null)
       return
     }
 
@@ -200,6 +203,7 @@ function App() {
     return `${Math.round(file.size / 1024)} KB`
   }, [file])
 
+  // ファイル検証，file state更新
   const updateSelectedFile = (incomingFile) => {
     if (!incomingFile) {
       return
@@ -214,21 +218,25 @@ function App() {
     setError('')
   }
 
+  // ファイル選択ボタンからの入力変更イベント
   const handleInputChange = (event) => {
     updateSelectedFile(event.target.files?.[0])
     event.target.value = ''
   }
 
+  // ドラッグオーバーイベント
   const handleDragOver = (event) => {
     event.preventDefault()
     setIsDragging(true)
   }
 
+  // ドラッグリーブイベント
   const handleDragLeave = (event) => {
     event.preventDefault()
     setIsDragging(false)
   }
 
+  // ファイルのドラッグ&ドロップイベント
   const handleDrop = (event) => {
     event.preventDefault()
     setIsDragging(false)
