@@ -159,6 +159,7 @@ function App() {
 
       if (type === 'processed') {
         setWorkerResult(payload)
+        setWorkerStatus(null)
         return
       }
 
@@ -214,6 +215,24 @@ function App() {
       return
     }
 
+    // 400×400ピクセル以上の画像のみ許可
+    if (incomingFile.type.startsWith('image/')) {
+      const img = new Image()
+      img.onload = () => {
+        if (img.width < 400 || img.height < 400) {
+          setError('400×400ピクセル以上の画像をアップロードしてください')
+          return
+        }
+        setFile(incomingFile)
+        setError('')
+      }
+      img.onerror = () => {
+        setError('画像の読み込みに失敗しました')
+      }
+      img.src = URL.createObjectURL(incomingFile)
+      return
+    }
+
     setFile(incomingFile)
     setError('')
   }
@@ -248,24 +267,9 @@ function App() {
       <section className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <h1 className="text-2xl font-bold text-slate-900">ファイルアップロード</h1>
         <p className="mt-2 text-sm text-slate-600">
-          ドラッグ&ドロップまたはボタンから選択してください。
+          ドラッグ&ドロップまたはボタンから選択してください。<br/>
+          400×400ピクセル以上の画像をアップロードしてください。<br/>
         </p>
-        <div className="mt-4 rounded-xl border border-slate-200 bg-pink-100 p-4">
-          <div className="grid gap-4 sm:grid-cols-[1.2fr_0.8fr] sm:items-center">
-            <p className="text-center text-sm leading-6 text-slate-600 sm:text-left">
-              OFFICIAL SHOPの画像は画質が低く処理できません。<br />
-              NEWSページや公式Xの投稿から取得できる右図のような画像をアップロードしてください。<br />
-              なお，画質が低すぎると正しく処理できない場合があります。
-            </p>
-            <div className="flex justify-center sm:justify-end h-80">
-              <img
-                src={`${basePath}upload_sample.jpg`}
-                alt="処理例の画像"
-                className="block rounded-lg border border-slate-200 bg-white object-contain p-2 shadow-sm sm:h-full"
-              />
-            </div>
-          </div>
-        </div>
 
         <input
           ref={inputRef}
@@ -334,7 +338,7 @@ function App() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <p className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">{workerResult.detections?.length || 0} 枠</p>
+                <p className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">検出数：{workerResult.detections?.length || 0}</p>
                 <button onClick={downloadAnnotatedImage} className="rounded-md bg-slate-900 px-3 py-1 text-sm font-semibold text-white">画像をダウンロード</button>
               </div>
             </div>
