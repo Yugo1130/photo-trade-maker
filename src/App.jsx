@@ -107,7 +107,7 @@ function App() {
           const imgIcon = await loadImage(asset)
           const cx = x + w / 2
           // サイズは枠横幅の60%
-          const size =  w * 0.6
+          const size = w * 0.6
           const half = size / 2
           // 枠の下端を基準に少し下に置く
           const drawY = y + h - half - 4
@@ -253,8 +253,8 @@ function App() {
         <div className="mt-4 rounded-xl border border-slate-200 bg-pink-100 p-4">
           <div className="grid gap-4 sm:grid-cols-[1.2fr_0.8fr] sm:items-center">
             <p className="text-center text-sm leading-6 text-slate-600 sm:text-left">
-              OFFICIAL SHOPの画像は画質が低く処理できません。<br/>
-              NEWSページや公式Xの投稿から取得できる右図のような画像をアップロードしてください。<br/>
+              OFFICIAL SHOPの画像は画質が低く処理できません。<br />
+              NEWSページや公式Xの投稿から取得できる右図のような画像をアップロードしてください。<br />
               なお，画質が低すぎると正しく処理できない場合があります。
             </p>
             <div className="flex justify-center sm:justify-end h-80">
@@ -281,8 +281,8 @@ function App() {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`mt-6 rounded-xl border-2 border-dashed p-8 text-center transition ${isDragging
-              ? 'border-blue-500 bg-blue-50 text-blue-700'
-              : 'border-slate-300 bg-slate-50 text-slate-700'
+            ? 'border-blue-500 bg-blue-50 text-blue-700'
+            : 'border-slate-300 bg-slate-50 text-slate-700'
             }`}
         >
           <p className="text-sm font-medium">ここに画像ファイルをドラッグ&ドロップ</p>
@@ -324,12 +324,12 @@ function App() {
 
         {previewUrl && workerResult?.width && workerResult?.height ? (
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-950/5 p-3">
-              <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs text-slate-500">
-                  赤枠は検出された領域を示しています。<br/>
-                  枠内に表示された +/- ボタンでラベルを付けることができます。<br/>
-                  「-」ボタンで「求」、「+」ボタンで「1」〜「10」を選択できます。<br/>
+                  赤枠は検出された領域を示しています。<br />
+                  枠内に表示された +/- ボタンでラベルを付けることができます。<br />
+                  「-」ボタンで「求」、「+」ボタンで「1」〜「10」を選択できます。<br />
                   ラベルを付けた画像は「画像をダウンロード」ボタンから保存できます。
                 </p>
               </div>
@@ -346,6 +346,7 @@ function App() {
                 className="block h-auto w-full"
               />
 
+              {/* 検出された領域を表示 */}
               <div className="absolute inset-0">
                 {workerResult.detections?.map((detection, index) => (
                   <div
