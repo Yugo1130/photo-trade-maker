@@ -16,6 +16,24 @@ const modules = import.meta.glob('/src/assets/samples/*', {
 
 const images = Object.values(modules)
 
+const emojiOptions = ['💖', '❤', '🩷', '🧡', '💛', '💚', '💙', '🩵', '⭐', '🌟', '✖', '🙏']
+
+function takeFirstGrapheme(text) {
+  const normalized = String(text ?? '').trim()
+  if (!normalized) {
+    return ''
+  }
+
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter('ja', { granularity: 'grapheme' })
+    const iterator = segmenter.segment(normalized)[Symbol.iterator]()
+    const first = iterator.next()
+    return first.value?.segment || ''
+  }
+
+  return Array.from(normalized)[0] || ''
+}
+
 function App() {
   const inputRef = useRef(null)
   const workerRef = useRef(null)
@@ -26,13 +44,42 @@ function App() {
   const [workerStatus, setWorkerStatus] = useState(null)
   const [workerResult, setWorkerResult] = useState(null)
   const previewRef = useRef(null)
+  const imgPreviewRef = useRef(null)
   const [annotations, setAnnotations] = useState({}) // { [index]: label }
+  const [selectedIndex, setSelectedIndex] = useState(null)
+  const [activeTool, setActiveTool] = useState('req')
+  const [customStampText, setCustomStampText] = useState(null)
   const basePath = import.meta.env.BASE_URL || '/'
 
   function assetPathForLabel(label) {
-    if (label === '求') return `${basePath}heart_request.png`
-    if (label === undefined || label === 0 || label === '') return null
-    return `${basePath}${label}.png`
+    if (label === 'req') return `${basePath}heart_request.png`
+    else if (label === 'del') return `${basePath}eraser.png`
+    else if (label === '+1') return `${basePath}+1.png`
+    else if (label === '−1') return `${basePath}-1.png`
+    else if (label === '1') return `${basePath}1.png`
+    else if (label === '2') return `${basePath}2.png`
+    else if (label === '3') return `${basePath}3.png`
+    else if (label === '4') return `${basePath}4.png`
+    else if (label === '5') return `${basePath}5.png`
+    else if (label === '6') return `${basePath}6.png`
+    else if (label === '7') return `${basePath}7.png`
+    else if (label === '8') return `${basePath}8.png`
+    else if (label === '9') return `${basePath}9.png`
+    else if (label === '10') return `${basePath}10.png`
+    else if (label === 'download') return `${basePath}download.png`
+    else if (label === undefined || label === 0 || label === '') return null
+    return null
+  }
+
+  function getStampRenderInfo(label) {
+    const asset = assetPathForLabel(label)
+    if (asset) {
+      return { kind: 'image', asset }
+    }
+    if (label === undefined || label === 0 || label === '') {
+      return null
+    }
+    return { kind: 'text', text: String(label) }
   }
 
   function loadImage(src) {
@@ -45,34 +92,87 @@ function App() {
     })
   }
 
+  // プレビュー上でラベルを描画するためのスタイルを計算（ピクセルベースで位置とサイズを決定）
+  function labelStyleForDetection(detection) {
+    const img = imgPreviewRef.current
+    if (!img) {
+      return { left: '50%', top: '100%', transform: 'translate(-50%,-50%)' }
+    }
+    const imgW = img.clientWidth
+    const imgH = img.clientHeight
+    const x = (detection.xPercent / 100) * imgW
+    const y = (detection.yPercent / 100) * imgH
+    const w = (detection.widthPercent / 100) * imgW
+    const h = (detection.heightPercent / 100) * imgH
+
+    const size = Math.round(w * 0.6)
+    const cx = Math.round(x + w / 2)
+    const half = size / 2
+    const drawY = Math.round(y + h - half - 4)
+
+    return {
+      left: `${cx}px`,
+      top: `${drawY}px`,
+      transform: 'translate(-50%,-50%)',
+      width: `${size}px`,
+      height: `${size}px`,
+      fontSize: `${Math.max(16, Math.round(size * 0.8))}px`,
+    }
+  }
+
   function incrementLabel(index) {
     setAnnotations((prev) => {
       const cur = prev[index]
-      // if current is '求', + resets to 0
-      if (cur === '求') {
-        return { ...prev, [index]: 0 }
+      // if current is 'req' (special stamp), + resets to '1'
+      if (cur === 'req') {
+        return { ...prev, [index]: '1' }
       }
       const num = typeof cur === 'number' ? cur : (cur ? Number(cur) : 0)
-      const next = Math.min(10, (Number.isFinite(num) ? num : 0) + 1)
-      return { ...prev, [index]: next }
+      const base = Number.isFinite(num) ? num : 0
+      const next = Math.min(10, base + 1)
+      return { ...prev, [index]: String(next) }
     })
   }
 
   function decrementLabel(index) {
     setAnnotations((prev) => {
       const cur = prev[index]
-      if (cur === '求') {
+      if (cur === 'req') {
         return prev // no change
       }
-      const num = typeof cur === 'number' ? cur : (cur ? Number(cur) : 0)
+      const num = typeof cur === 'number' ? cur : (cur ? Number(cur) : NaN)
       if (!Number.isFinite(num)) {
         return prev
       }
-      if (num > 0) {
-        return { ...prev, [index]: Math.max(0, num - 1) }
+      if (num > 1) {
+        return { ...prev, [index]: String(Math.max(1, num - 1)) }
       }
-      // num === 0 and user pressed -, switch to '求'
-      return { ...prev, [index]: '求' }
+      // num === 1 or 0 の時はラベル削除
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+  }
+
+  // 選択中インデックスのラベルを 'req' にセット
+  function setSelectedToRequest(index) {
+    setAnnotations((prev) => {
+      return { ...prev, [index]: 'req' }
+    })
+  }
+
+  function applyCustomStampToIndex(index) {
+    setAnnotations((prev) => {
+      return { ...prev, [index]: customStampText }
+    })
+  }
+
+  // 選択中インデックスのラベルを削除
+  function deleteSelectedLabel(index) {
+    setAnnotations((prev) => {
+      const next = { ...prev }
+      delete next[index]
+      return next
     })
   }
 
@@ -115,18 +215,16 @@ function App() {
 
       // ユーザ注釈があれば枠の下端を基準に画像で描画
       const label = annotations[index]
-      const asset = assetPathForLabel(label)
-      if (asset) {
+      const stamp = getStampRenderInfo(label)
+      if (stamp?.kind === 'image') {
         try {
-          const imgIcon = await loadImage(asset)
+          const imgIcon = await loadImage(stamp.asset)
           const cx = x + w / 2
           // サイズは枠横幅の60%
           const size = w * 0.6
           const half = size / 2
           // 枠の下端を基準に少し下に置く
           const drawY = y + h - half - 4
-          // 下にはみ出す場合は上に置く
-          // const drawY = (preferredY + half > canvas.height) ? (y - half - 4) : preferredY
           ctx.drawImage(imgIcon, cx - size / 2, drawY - size / 2, size, size)
         } catch (err) {
           // 画像ロード失敗時は文字で代替
@@ -137,6 +235,15 @@ function App() {
           ctx.fillText(String(label), cx, cy)
           ctx.fillStyle = 'red'
         }
+      } else if (stamp?.kind === 'text') {
+        const size = Math.max(18, Math.round(w * 0.6))
+        const cx = x + w / 2
+        const cy = y + h - size / 2 - 4
+        ctx.font = `${size}px sans-serif`
+        ctx.fillStyle = 'black'
+        ctx.fillText(stamp.text, cx, cy)
+        ctx.fillStyle = 'red'
+        ctx.font = `${fontSize}px sans-serif`
       }
     }
 
@@ -196,12 +303,16 @@ function App() {
       setWorkerResult(null)
       setPreviewUrl('')
       setWorkerStatus(null)
+      setAnnotations({})
+      setSelectedIndex(null)
       return
     }
 
     const nextPreviewUrl = URL.createObjectURL(file)
     setPreviewUrl(nextPreviewUrl)
     setWorkerResult(null)
+    setAnnotations({})
+    setSelectedIndex(null)
     // workerにファイルを送信して処理を開始
     workerRef.current?.postMessage({ type: 'process-file', file })
 
@@ -277,9 +388,14 @@ function App() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10">
-      <section className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <h1 className="text-2xl font-bold text-slate-900">ファイルアップロード</h1>
+    <main className="min-h-screen bg-slate-50 pb-28">
+      <header className="w-full bg-[linear-gradient(90deg,#f4b7cf_0%,#f4b7cf_20%,#a9dbe6_40%,#a9dbe6_60%,#f3e19f_80%,#f3e19f_100%)] p-[10px] text-white">
+        <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-8">
+          <h1 className="mt-2 text-2xl md:text-3xl font-bold text-white">トレード画像作成ツール</h1>
+        </div>
+      </header>
+      <section className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-8">
+        <h2 className="text-2xl font-bold text-slate-900">ファイルアップロード</h2>
         <p className="mt-2 text-sm text-slate-600">
           ドラッグ&ドロップまたはボタンから選択してください。<br />
           400×400ピクセル以上の画像をアップロードしてください。<br />
@@ -289,15 +405,17 @@ function App() {
             以下のような背景が白色の画像に対応しています。
           </p>
 
-          <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
-            {images.map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                alt={`sample-${i}`}
-                className="h-48 object-contain rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
-              />
-            ))}
+          <div className="overflow-x-auto pb-2">
+            <div className="flex w-max flex-nowrap gap-4">
+              {images.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt={`sample-${i}`}
+                  className="h-48 object-contain rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
+                />
+              ))}
+            </div>
           </div>
         </div>
 
@@ -324,7 +442,7 @@ function App() {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="mt-4 inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+            className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400"
           >
             ファイルを選択
           </button>
@@ -361,20 +479,18 @@ function App() {
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs text-slate-500">
-                  赤枠は検出された領域を示しています。<br />
-                  枠内に表示された +/- ボタンでラベルを付けることができます。<br />
-                  「-」ボタンで「求」、「+」ボタンで「1」〜「10」を選択できます。<br />
-                  ラベルを付けた画像は「画像をダウンロード」ボタンから保存できます。
+                  赤枠は検出された領域を示しています。（ダウンロードした画像には表示されません。）<br />
+                  ラベルを付けた画像は右下のダウンロードボタンから保存できます。
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <p className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">検出数：{workerResult.detections?.length || 0}</p>
-                <button onClick={downloadAnnotatedImage} className="rounded-md bg-slate-900 px-3 py-1 text-sm font-semibold text-white">画像をダウンロード</button>
-              </div>
+              {(workerResult?.detections?.length || 0) === 0
+                ? <p className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">検出失敗</p>
+                : <p className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">検出成功</p>}
             </div>
 
             <div ref={previewRef} className="relative overflow-hidden rounded-lg border border-slate-300 bg-white">
               <img
+                ref={imgPreviewRef}
                 src={previewUrl}
                 alt="アップロード画像のプレビュー"
                 className="block h-auto w-full"
@@ -385,7 +501,31 @@ function App() {
                 {workerResult.detections?.map((detection, index) => (
                   <div
                     key={`${detection.x}-${detection.y}-${index}`}
-                    className="absolute cursor-pointer border-2 border-red-500 bg-red-500/10 z-10"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedIndex(index)
+                      if (activeTool === 'inc') {
+                        incrementLabel(index)
+                        return
+                      }
+                      if (activeTool === 'dec') {
+                        decrementLabel(index)
+                        return
+                      }
+                      if (activeTool === 'req') {
+                        setSelectedToRequest(index)
+                        return
+                      }
+                      if (activeTool === 'text') {
+                        applyCustomStampToIndex(index)
+                        return
+                      }
+                      if (activeTool === 'del') {
+                        deleteSelectedLabel(index)
+                        return
+                      }
+                    }}
+                    className={'absolute cursor-pointer z-10 border-2 border-red-500 bg-red-500/10'}
                     style={{
                       left: `${detection.xPercent}%`,
                       top: `${detection.yPercent}%`,
@@ -393,41 +533,36 @@ function App() {
                       height: `${detection.heightPercent}%`,
                     }}
                   >
-                    {/* left-top の番号は表示しない */}
-
-                    {/* 選択済みラベルを表示（枠の中心上に） */}
-                    {annotations[index] !== undefined && annotations[index] !== 0 && (
-                      <div
-                        style={{ left: '50%', top: `${detection.yPercent + detection.heightPercent}%`, transform: 'translate(-50%,-50%)' }}
-                        className="absolute"
-                      >
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full">
-                          {(() => {
-                            const asset = assetPathForLabel(annotations[index])
-                            return asset ? (
-                              <img
-                                src={asset}
-                                alt={String(annotations[index])}
-                                className="object-contain"
-                                style={{ width: `${detection.widthPercent * 0.6}%`, height: `${detection.widthPercent * 0.6}%` }}
-                              />
-                            ) : null
-                          })()}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* -/+ コントロール（枠の右下） */}
-                    <div className="absolute right-1 bottom-1 flex flex-col items-center gap-1 bg-white/80 rounded">
-                      <button onClick={(e) => { e.stopPropagation(); incrementLabel(index) }} className="text-xs px-2 py-0.5">+</button>
-                      <div className="text-xs font-medium px-1">{(() => {
-                        const asset = assetPathForLabel(annotations[index])
-                        return asset ? <img src={asset} alt={String(annotations[index])} className="h-4 w-4 object-contain" /> : ''
-                      })()}</div>
-                      <button onClick={(e) => { e.stopPropagation(); decrementLabel(index) }} className="text-xs px-2 py-0.5">−</button>
-                    </div>
+                    {/* inline controls removed — use bottom control panel (tool first, then tap image) */}
                   </div>
                 ))}
+              </div>
+
+              {/* ラベルはプレビュー全体に対してピクセル位置で描画（クリック可能） */}
+              <div className="absolute inset-0 pointer-events-none">
+                {workerResult.detections?.map((detection, index) => {
+                  if (annotations[index] === undefined || annotations[index] === 0) return null
+                  const style = labelStyleForDetection(detection)
+                  const stamp = getStampRenderInfo(annotations[index])
+                  return (
+                    <button
+                      key={`label-${index}`}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setSelectedIndex(index) }}
+                      className="absolute pointer-events-auto"
+                      style={style}
+                      aria-pressed={selectedIndex === index}
+                    >
+                      {stamp?.kind === 'image' ? (
+                        <img src={stamp.asset} alt={String(annotations[index])} style={{ width: '100%', height: '100%', display: 'block' }} />
+                      ) : stamp?.kind === 'text' ? (
+                        <span className="flex h-full w-full items-center justify-center leading-none text-black" style={{ fontSize: style.fontSize }}>
+                          {stamp.text}
+                        </span>
+                      ) : null}
+                    </button>
+                  )
+                })}
               </div>
               {/* 背景クリック（何もしない） */}
               <div className="absolute inset-0 z-0" />
@@ -443,33 +578,77 @@ function App() {
 
         }
 
-        {/* {workerResult?.debugStages?.length ? (
-          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
-            <p className="text-sm font-semibold text-slate-900">画像処理デバッグ</p>
-            <p className="mt-1 text-xs text-slate-500">
-              どの段階で画像がどう変化したかを確認できます。
-            </p>
+      </section>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {workerResult.debugStages.map((stage) => (
-                <div
-                  key={stage.name}
-                  className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
+      {/* 固定操作パネル（フッター風） */}
+      <div className="fixed bottom-4 left-1/2 z-50 w-full max-w-2xl -translate-x-1/2 px-4">
+        <div className="rounded-xl bg-white/95 backdrop-blur-sm border border-slate-200 shadow-md p-3">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveTool('req')}
+              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'req' ? 'bg-slate-300 text-slate-900' : ''}`}
+              aria-label="ツール: 求"
+            >
+              <img src={assetPathForLabel('req')} alt="求ラベル" className="h-8 w-8 object-contain" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTool('inc')}
+              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'inc' ? 'bg-slate-300 text-slate-900' : ''}`}
+              aria-label="ツール: +1"
+            >
+              <img src={assetPathForLabel('+1')} alt="+1ラベル" className="h-8 w-8 object-contain" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTool('dec')}
+              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'dec' ? 'bg-slate-300 text-slate-900' : ''}`}
+              aria-label="ツール: −1"
+            >
+              <img src={assetPathForLabel('−1')} alt="−1ラベル" className="h-8 w-8 object-contain" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTool('del')}
+              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'del' ? 'bg-slate-200 text-red-800' : ''}`}
+              aria-label="ツール: ラベル削除"
+            >
+              <img src={assetPathForLabel('del')} alt="削除ラベル" className="h-8 w-8 object-contain" />
+            </button>
+
+            <button
+              onClick={downloadAnnotatedImage}
+              className="ml-auto w-auto rounded-md px-3 py-1 text-sm font-semibold text-white text-center hover:bg-blue-400"
+            >
+              <img src={assetPathForLabel('download')} alt="ダウンロード " className="h-8 w-8 object-contain" />
+            </button>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-2">
+            <div className="flex gap-1 overflow-x-auto">
+              {emojiOptions.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => {
+                    setActiveTool('text')
+                    setCustomStampText(emoji)
+                  }}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-lg transition ${customStampText === emoji ? 'border-slate-400 bg-slate-200' : 'border-slate-200 bg-white hover:bg-slate-100'}`}
+                  aria-label={`絵文字 ${emoji}`}
+                  aria-pressed={customStampText === emoji}
                 >
-                  <p className="border-b border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">
-                    {stage.name}
-                  </p>
-                  <img
-                    src={stage.dataUrl}
-                    alt={stage.name}
-                    className="block h-auto w-full"
-                  />
-                </div>
+                  {emoji}
+                </button>
               ))}
             </div>
           </div>
-        ) : null} */}
-      </section>
+        </div>
+      </div>
     </main>
   )
 }
