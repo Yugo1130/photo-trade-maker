@@ -388,7 +388,7 @@ function App() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-28">
+    <main className="min-h-screen bg-slate-50 pb-20">
       <header className="w-full bg-[linear-gradient(90deg,#f4b7cf_0%,#f4b7cf_20%,#a9dbe6_40%,#a9dbe6_60%,#f3e19f_80%,#f3e19f_100%)] p-[10px] text-white">
         <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-8">
           <h1 className="mt-2 text-2xl md:text-3xl font-bold text-white">トレード画像作成ツール</h1>
@@ -578,77 +578,77 @@ function App() {
 
         }
 
-      </section>
+        {/* 操作パネル */}
+        {previewUrl && workerResult?.width && workerResult?.height ? (
+          <div className="mt-5 rounded-xl bg-white/95 backdrop-blur-sm border border-slate-200 shadow-md p-3">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setActiveTool('req')}
+                className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'req' ? 'bg-slate-300 text-slate-900' : ''}`}
+                aria-label="ツール: 求"
+              >
+                <img src={assetPathForLabel('req')} alt="求ラベル" className="h-8 w-8 object-contain" />
+              </button>
 
-      {/* 固定操作パネル（フッター風） */}
-      <div className="fixed bottom-4 left-1/2 z-50 w-full max-w-2xl -translate-x-1/2 px-4">
-        <div className="rounded-xl bg-white/95 backdrop-blur-sm border border-slate-200 shadow-md p-3">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setActiveTool('req')}
-              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'req' ? 'bg-slate-300 text-slate-900' : ''}`}
-              aria-label="ツール: 求"
-            >
-              <img src={assetPathForLabel('req')} alt="求ラベル" className="h-8 w-8 object-contain" />
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveTool('inc')}
+                className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'inc' ? 'bg-slate-300 text-slate-900' : ''}`}
+                aria-label="ツール: +1"
+              >
+                <img src={assetPathForLabel('+1')} alt="+1ラベル" className="h-8 w-8 object-contain" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTool('inc')}
-              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'inc' ? 'bg-slate-300 text-slate-900' : ''}`}
-              aria-label="ツール: +1"
-            >
-              <img src={assetPathForLabel('+1')} alt="+1ラベル" className="h-8 w-8 object-contain" />
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveTool('dec')}
+                className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'dec' ? 'bg-slate-300 text-slate-900' : ''}`}
+                aria-label="ツール: −1"
+              >
+                <img src={assetPathForLabel('−1')} alt="−1ラベル" className="h-8 w-8 object-contain" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTool('dec')}
-              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'dec' ? 'bg-slate-300 text-slate-900' : ''}`}
-              aria-label="ツール: −1"
-            >
-              <img src={assetPathForLabel('−1')} alt="−1ラベル" className="h-8 w-8 object-contain" />
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveTool('del')}
+                className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'del' ? 'bg-slate-200 text-red-800' : ''}`}
+                aria-label="ツール: ラベル削除"
+              >
+                <img src={assetPathForLabel('del')} alt="削除ラベル" className="h-8 w-8 object-contain" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTool('del')}
-              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'del' ? 'bg-slate-200 text-red-800' : ''}`}
-              aria-label="ツール: ラベル削除"
-            >
-              <img src={assetPathForLabel('del')} alt="削除ラベル" className="h-8 w-8 object-contain" />
-            </button>
+              <button
+                onClick={downloadAnnotatedImage}
+                className="ml-auto w-auto rounded-md px-3 py-1 text-sm font-semibold text-white text-center hover:bg-blue-400"
+              >
+                <img src={assetPathForLabel('download')} alt="ダウンロード " className="h-8 w-8 object-contain" />
+              </button>
+            </div>
 
-            <button
-              onClick={downloadAnnotatedImage}
-              className="ml-auto w-auto rounded-md px-3 py-1 text-sm font-semibold text-white text-center hover:bg-blue-400"
-            >
-              <img src={assetPathForLabel('download')} alt="ダウンロード " className="h-8 w-8 object-contain" />
-            </button>
-          </div>
-
-          <div className="mt-3 flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-2">
-            <div className="flex gap-1 overflow-x-auto">
-              {emojiOptions.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => {
-                    setActiveTool('text')
-                    setCustomStampText(emoji)
-                  }}
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-lg transition ${customStampText === emoji ? 'border-slate-400 bg-slate-200' : 'border-slate-200 bg-white hover:bg-slate-100'}`}
-                  aria-label={`絵文字 ${emoji}`}
-                  aria-pressed={customStampText === emoji}
-                >
-                  {emoji}
-                </button>
-              ))}
+            <div className="mt-3 flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-2">
+              <div className="flex gap-1 overflow-x-auto">
+                {emojiOptions.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => {
+                      setActiveTool('text')
+                      setCustomStampText(emoji)
+                    }}
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-lg transition ${customStampText === emoji ? 'border-slate-400 bg-slate-200' : 'border-slate-200 bg-white hover:bg-slate-100'}`}
+                    aria-label={`絵文字 ${emoji}`}
+                    aria-pressed={customStampText === emoji}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        ) : null}
+      </section>
+
     </main>
   )
 }
