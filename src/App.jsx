@@ -66,6 +66,7 @@ function App() {
     else if (label === '8') return `${basePath}8.png`
     else if (label === '9') return `${basePath}9.png`
     else if (label === '10') return `${basePath}10.png`
+    else if (label === 'download') return `${basePath}download.png`
     else if (label === undefined || label === 0 || label === '') return null
     return null
   }
@@ -478,11 +479,11 @@ function App() {
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs text-slate-500">
-                  赤枠は検出された領域を示しています。（ダウンロードした画像には表示されません。）<br/>
-                  ラベルを付けた画像は右下の「画像をダウンロード」ボタンから保存できます。
+                  赤枠は検出された領域を示しています。（ダウンロードした画像には表示されません。）<br />
+                  ラベルを付けた画像は右下のダウンロードボタンから保存できます。
                 </p>
               </div>
-              {(workerResult?.detections?.length || 0) === 0 
+              {(workerResult?.detections?.length || 0) === 0
                 ? <p className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">検出失敗</p>
                 : <p className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">検出成功</p>}
             </div>
@@ -579,75 +580,75 @@ function App() {
 
       </section>
 
-        {/* 固定操作パネル（フッター風） */}
-        <div className="fixed bottom-4 left-1/2 z-50 w-full max-w-2xl -translate-x-1/2 px-4">
-          <div className="rounded-xl bg-white/95 backdrop-blur-sm border border-slate-200 shadow-md p-3">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setActiveTool('req')}
-                className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'req' ? 'bg-slate-300 text-slate-900' : ''}`}
-                aria-label="ツール: 求"
-              >
-                <img src={assetPathForLabel('req')} alt="求ラベル" className="h-8 w-8 object-contain" />
-              </button>
+      {/* 固定操作パネル（フッター風） */}
+      <div className="fixed bottom-4 left-1/2 z-50 w-full max-w-2xl -translate-x-1/2 px-4">
+        <div className="rounded-xl bg-white/95 backdrop-blur-sm border border-slate-200 shadow-md p-3">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveTool('req')}
+              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'req' ? 'bg-slate-300 text-slate-900' : ''}`}
+              aria-label="ツール: 求"
+            >
+              <img src={assetPathForLabel('req')} alt="求ラベル" className="h-8 w-8 object-contain" />
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTool('inc')}
-                className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'inc' ? 'bg-slate-300 text-slate-900' : ''}`}
-                aria-label="ツール: +1"
-              >
-                <img src={assetPathForLabel('+1')} alt="+1ラベル" className="h-8 w-8 object-contain" />
-              </button>
+            <button
+              type="button"
+              onClick={() => setActiveTool('inc')}
+              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'inc' ? 'bg-slate-300 text-slate-900' : ''}`}
+              aria-label="ツール: +1"
+            >
+              <img src={assetPathForLabel('+1')} alt="+1ラベル" className="h-8 w-8 object-contain" />
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTool('dec')}
-                className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'dec' ? 'bg-slate-300 text-slate-900' : ''}`}
-                aria-label="ツール: −1"
-              >
-                <img src={assetPathForLabel('−1')} alt="−1ラベル" className="h-8 w-8 object-contain" />
-              </button>
+            <button
+              type="button"
+              onClick={() => setActiveTool('dec')}
+              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'dec' ? 'bg-slate-300 text-slate-900' : ''}`}
+              aria-label="ツール: −1"
+            >
+              <img src={assetPathForLabel('−1')} alt="−1ラベル" className="h-8 w-8 object-contain" />
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTool('del')}
-                className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'del' ? 'bg-slate-200 text-red-800' : ''}`}
-                aria-label="ツール: ラベル削除"
-              >
-                <img src={assetPathForLabel('del')} alt="削除ラベル" className="h-8 w-8 object-contain" />
-              </button>
+            <button
+              type="button"
+              onClick={() => setActiveTool('del')}
+              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'del' ? 'bg-slate-200 text-red-800' : ''}`}
+              aria-label="ツール: ラベル削除"
+            >
+              <img src={assetPathForLabel('del')} alt="削除ラベル" className="h-8 w-8 object-contain" />
+            </button>
 
-              <button
-                onClick={downloadAnnotatedImage}
-                className="ml-auto w-auto rounded-md bg-slate-900 px-3 py-1 text-sm font-semibold bg-blue-600 text-white text-center hover:bg-blue-400"
-              >
-                画像をダウンロード
-              </button>
-            </div>
+            <button
+              onClick={downloadAnnotatedImage}
+              className="ml-auto w-auto rounded-md px-3 py-1 text-sm font-semibold text-white text-center hover:bg-blue-400"
+            >
+              <img src={assetPathForLabel('download')} alt="ダウンロード " className="h-8 w-8 object-contain" />
+            </button>
+          </div>
 
-            <div className="mt-3 flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-2">
-              <div className="flex gap-1 overflow-x-auto">
-                {emojiOptions.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => {
-                      setActiveTool('text')
-                      setCustomStampText(emoji)
-                    }}
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-lg transition ${customStampText === emoji ? 'border-slate-400 bg-slate-200' : 'border-slate-200 bg-white hover:bg-slate-100'}`}
-                    aria-label={`絵文字 ${emoji}`}
-                    aria-pressed={customStampText === emoji}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
+          <div className="mt-3 flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-2">
+            <div className="flex gap-1 overflow-x-auto">
+              {emojiOptions.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => {
+                    setActiveTool('text')
+                    setCustomStampText(emoji)
+                  }}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-lg transition ${customStampText === emoji ? 'border-slate-400 bg-slate-200' : 'border-slate-200 bg-white hover:bg-slate-100'}`}
+                  aria-label={`絵文字 ${emoji}`}
+                  aria-pressed={customStampText === emoji}
+                >
+                  {emoji}
+                </button>
+              ))}
             </div>
           </div>
         </div>
+      </div>
     </main>
   )
 }
