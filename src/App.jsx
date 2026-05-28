@@ -16,6 +16,24 @@ const modules = import.meta.glob('/src/assets/samples/*', {
 
 const images = Object.values(modules)
 
+const emojiOptions = ['💖', '❤', '🩷', '🧡', '💛', '💚', '💙', '🩵', '⭐', '🌟', '✖', '🙏']
+
+function takeFirstGrapheme(text) {
+  const normalized = String(text ?? '').trim()
+  if (!normalized) {
+    return ''
+  }
+
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter('ja', { granularity: 'grapheme' })
+    const iterator = segmenter.segment(normalized)[Symbol.iterator]()
+    const first = iterator.next()
+    return first.value?.segment || ''
+  }
+
+  return Array.from(normalized)[0] || ''
+}
+
 function App() {
   const inputRef = useRef(null)
   const workerRef = useRef(null)
@@ -29,7 +47,8 @@ function App() {
   const imgPreviewRef = useRef(null)
   const [annotations, setAnnotations] = useState({}) // { [index]: label }
   const [selectedIndex, setSelectedIndex] = useState(null)
-  const [activeTool, setActiveTool] = useState('req') // 'inc' | 'dec' | 'req' | 'del'
+  const [activeTool, setActiveTool] = useState('req')
+  const [customStampText, setCustomStampText] = useState(null)
   const basePath = import.meta.env.BASE_URL || '/'
 
   function assetPathForLabel(label) {
@@ -37,8 +56,29 @@ function App() {
     else if (label === 'del') return `${basePath}eraser.png`
     else if (label === '+1') return `${basePath}+1.png`
     else if (label === '−1') return `${basePath}-1.png`
+    else if (label === '1') return `${basePath}1.png`
+    else if (label === '2') return `${basePath}2.png`
+    else if (label === '3') return `${basePath}3.png`
+    else if (label === '4') return `${basePath}4.png`
+    else if (label === '5') return `${basePath}5.png`
+    else if (label === '6') return `${basePath}6.png`
+    else if (label === '7') return `${basePath}7.png`
+    else if (label === '8') return `${basePath}8.png`
+    else if (label === '9') return `${basePath}9.png`
+    else if (label === '10') return `${basePath}10.png`
     else if (label === undefined || label === 0 || label === '') return null
-    return `${basePath}${label}.png`
+    return null
+  }
+
+  function getStampRenderInfo(label) {
+    const asset = assetPathForLabel(label)
+    if (asset) {
+      return { kind: 'image', asset }
+    }
+    if (label === undefined || label === 0 || label === '') {
+      return null
+    }
+    return { kind: 'text', text: String(label) }
   }
 
   function loadImage(src) {
@@ -75,6 +115,7 @@ function App() {
       transform: 'translate(-50%,-50%)',
       width: `${size}px`,
       height: `${size}px`,
+      fontSize: `${Math.max(16, Math.round(size * 0.8))}px`,
     }
   }
 
@@ -115,14 +156,13 @@ function App() {
   // 選択中インデックスのラベルを 'req' にセット
   function setSelectedToRequest(index) {
     setAnnotations((prev) => {
-      const cur = prev[index]
-      if (cur === 'req') {
-        // すでに 'req' の場合は削除する
-        const next = { ...prev }
-        delete next[index]
-        return next
-      }
       return { ...prev, [index]: 'req' }
+    })
+  }
+
+  function applyCustomStampToIndex(index) {
+    setAnnotations((prev) => {
+      return { ...prev, [index]: customStampText }
     })
   }
 
@@ -174,10 +214,10 @@ function App() {
 
       // ユーザ注釈があれば枠の下端を基準に画像で描画
       const label = annotations[index]
-      const asset = assetPathForLabel(label)
-      if (asset) {
+      const stamp = getStampRenderInfo(label)
+      if (stamp?.kind === 'image') {
         try {
-          const imgIcon = await loadImage(asset)
+          const imgIcon = await loadImage(stamp.asset)
           const cx = x + w / 2
           // サイズは枠横幅の60%
           const size = w * 0.6
@@ -194,6 +234,15 @@ function App() {
           ctx.fillText(String(label), cx, cy)
           ctx.fillStyle = 'red'
         }
+      } else if (stamp?.kind === 'text') {
+        const size = Math.max(18, Math.round(w * 0.6))
+        const cx = x + w / 2
+        const cy = y + h - size / 2 - 4
+        ctx.font = `${size}px sans-serif`
+        ctx.fillStyle = 'black'
+        ctx.fillText(stamp.text, cx, cy)
+        ctx.fillStyle = 'red'
+        ctx.font = `${fontSize}px sans-serif`
       }
     }
 
@@ -466,6 +515,10 @@ function App() {
                         setSelectedToRequest(index)
                         return
                       }
+                      if (activeTool === 'text') {
+                        applyCustomStampToIndex(index)
+                        return
+                      }
                       if (activeTool === 'del') {
                         deleteSelectedLabel(index)
                         return
@@ -489,7 +542,7 @@ function App() {
                 {workerResult.detections?.map((detection, index) => {
                   if (annotations[index] === undefined || annotations[index] === 0) return null
                   const style = labelStyleForDetection(detection)
-                  const asset = assetPathForLabel(annotations[index])
+                  const stamp = getStampRenderInfo(annotations[index])
                   return (
                     <button
                       key={`label-${index}`}
@@ -499,8 +552,12 @@ function App() {
                       style={style}
                       aria-pressed={selectedIndex === index}
                     >
-                      {asset ? (
-                        <img src={asset} alt={String(annotations[index])} style={{ width: '100%', height: '100%', display: 'block' }} />
+                      {stamp?.kind === 'image' ? (
+                        <img src={stamp.asset} alt={String(annotations[index])} style={{ width: '100%', height: '100%', display: 'block' }} />
+                      ) : stamp?.kind === 'text' ? (
+                        <span className="flex h-full w-full items-center justify-center leading-none text-black" style={{ fontSize: style.fontSize }}>
+                          {stamp.text}
+                        </span>
                       ) : null}
                     </button>
                   )
@@ -524,44 +581,71 @@ function App() {
 
         {/* 固定操作パネル（フッター風） */}
         <div className="fixed bottom-4 left-1/2 z-50 w-full max-w-2xl -translate-x-1/2 px-4">
-          <div className="rounded-xl bg-white/95 backdrop-blur-sm border border-slate-200 shadow-md flex items-center gap-3 p-3">
-            <button
-              type="button"
-              onClick={() => setActiveTool('req')}
-              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'req' ? 'bg-slate-300 text-slate-900' : ''}`}
-              aria-label="ツール: 求"
-            >
-              <img src={assetPathForLabel('req')} alt="求ラベル" className="h-8 w-8 object-contain" />
-            </button>
+          <div className="rounded-xl bg-white/95 backdrop-blur-sm border border-slate-200 shadow-md p-3">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setActiveTool('req')}
+                className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'req' ? 'bg-slate-300 text-slate-900' : ''}`}
+                aria-label="ツール: 求"
+              >
+                <img src={assetPathForLabel('req')} alt="求ラベル" className="h-8 w-8 object-contain" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTool('inc')}
-              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'inc' ? 'bg-slate-300 text-slate-900' : ''}`}
-              aria-label="ツール: +1"
-            >
-              <img src={assetPathForLabel('+1')} alt="+1ラベル" className="h-8 w-8 object-contain" />
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveTool('inc')}
+                className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'inc' ? 'bg-slate-300 text-slate-900' : ''}`}
+                aria-label="ツール: +1"
+              >
+                <img src={assetPathForLabel('+1')} alt="+1ラベル" className="h-8 w-8 object-contain" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTool('dec')}
-              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'dec' ? 'bg-slate-300 text-slate-900' : ''}`}
-              aria-label="ツール: −1"
-            >
-              <img src={assetPathForLabel('−1')} alt="−1ラベル" className="h-8 w-8 object-contain" />
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveTool('dec')}
+                className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'dec' ? 'bg-slate-300 text-slate-900' : ''}`}
+                aria-label="ツール: −1"
+              >
+                <img src={assetPathForLabel('−1')} alt="−1ラベル" className="h-8 w-8 object-contain" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTool('del')}
-              className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'del' ? 'bg-slate-200 text-red-800' : ''}`}
-              aria-label="ツール: ラベル削除"
-            >
-              <img src={assetPathForLabel('del')} alt="削除ラベル" className="h-8 w-8 object-contain" />
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveTool('del')}
+                className={`rounded-md px-3 py-1 text-sm font-semibold ${activeTool === 'del' ? 'bg-slate-200 text-red-800' : ''}`}
+                aria-label="ツール: ラベル削除"
+              >
+                <img src={assetPathForLabel('del')} alt="削除ラベル" className="h-8 w-8 object-contain" />
+              </button>
 
-            <button onClick={downloadAnnotatedImage} className="ml-auto w-auto rounded-md bg-slate-900 px-3 py-1 text-sm font-semibold bg-blue-600 text-white text-center hover:bg-blue-400">画像をダウンロード</button>
+              <button
+                onClick={downloadAnnotatedImage}
+                className="ml-auto w-auto rounded-md bg-slate-900 px-3 py-1 text-sm font-semibold bg-blue-600 text-white text-center hover:bg-blue-400"
+              >
+                画像をダウンロード
+              </button>
+            </div>
+
+            <div className="mt-3 flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-2">
+              <div className="flex gap-1 overflow-x-auto">
+                {emojiOptions.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => {
+                      setActiveTool('text')
+                      setCustomStampText(emoji)
+                    }}
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-lg transition ${customStampText === emoji ? 'border-slate-400 bg-slate-200' : 'border-slate-200 bg-white hover:bg-slate-100'}`}
+                    aria-label={`絵文字 ${emoji}`}
+                    aria-pressed={customStampText === emoji}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
     </main>
