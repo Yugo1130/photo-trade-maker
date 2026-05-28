@@ -277,9 +277,14 @@ function App() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10">
-      <section className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <h1 className="text-2xl font-bold text-slate-900">ファイルアップロード</h1>
+    <main className="min-h-screen bg-slate-50">
+      <header className="w-full bg-[linear-gradient(90deg,#f4b7cf_0%,#f4b7cf_20%,#a9dbe6_40%,#a9dbe6_60%,#f3e19f_80%,#f3e19f_100%)] p-[10px] text-white">
+        <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-8">
+          <h1 className="mt-2 text-2xl md:text-3xl font-bold text-white">トレード画像作成ツール</h1>
+        </div>
+      </header>
+      <section className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-8">
+        <h2 className="text-2xl font-bold text-slate-900">ファイルアップロード</h2>
         <p className="mt-2 text-sm text-slate-600">
           ドラッグ&ドロップまたはボタンから選択してください。<br />
           400×400ピクセル以上の画像をアップロードしてください。<br />
@@ -289,15 +294,17 @@ function App() {
             以下のような背景が白色の画像に対応しています。
           </p>
 
-          <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
-            {images.map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                alt={`sample-${i}`}
-                className="h-48 object-contain rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
-              />
-            ))}
+          <div className="overflow-x-auto pb-2">
+            <div className="flex w-max flex-nowrap gap-4">
+              {images.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt={`sample-${i}`}
+                  className="h-48 object-contain rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
+                />
+              ))}
+            </div>
           </div>
         </div>
 
@@ -367,9 +374,9 @@ function App() {
                   ラベルを付けた画像は「画像をダウンロード」ボタンから保存できます。
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <p className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">検出数：{workerResult.detections?.length || 0}</p>
-                <button onClick={downloadAnnotatedImage} className="rounded-md bg-slate-900 px-3 py-1 text-sm font-semibold text-white">画像をダウンロード</button>
+              <div className="flex flex-col md:flex-row gap-2 md:items-center items-start">
+                <p className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">{(workerResult?.detections?.length || 0) === 0 ? '検出失敗' : '検出成功'}</p>
+                <button onClick={downloadAnnotatedImage} className="w-full md:w-auto rounded-md bg-slate-900 px-3 py-1 text-sm font-semibold text-white text-center">保存</button>
               </div>
             </div>
 
