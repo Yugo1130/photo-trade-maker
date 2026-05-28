@@ -16,7 +16,7 @@ const modules = import.meta.glob('/src/assets/samples/*', {
 
 const images = Object.values(modules)
 
-const emojiOptions = ['💖', '❤', '🩷', '🧡', '💛', '💚', '💙', '🩵', '⭐', '🌟', '✖', '🙏']
+const emojiOptions = ['💖', '❤', '🩷', '🧡', '💛', '💚', '💙', '🩵', '⭐', '🌟', '✖', '❌', '❎', '🙏']
 
 function takeFirstGrapheme(text) {
   const normalized = String(text ?? '').trim()
