@@ -253,12 +253,16 @@ function App() {
       setWorkerResult(null)
       setPreviewUrl('')
       setWorkerStatus(null)
+      setAnnotations({})
+      setSelectedIndex(null)
       return
     }
 
     const nextPreviewUrl = URL.createObjectURL(file)
     setPreviewUrl(nextPreviewUrl)
     setWorkerResult(null)
+    setAnnotations({})
+    setSelectedIndex(null)
     // workerにファイルを送信して処理を開始
     workerRef.current?.postMessage({ type: 'process-file', file })
 
