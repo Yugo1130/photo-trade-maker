@@ -396,11 +396,12 @@ function App() {
       </header>
       <section className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-8">
         <h2 className="text-2xl font-bold text-slate-900">ファイルアップロード</h2>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 mb-2 text-sm text-slate-600">
           ドラッグ&ドロップまたはボタンから選択してください。<br />
-          400×400ピクセル以上の画像をアップロードしてください。<br />
+          OFFICIAL SHOPやNEWSページ等の画像をご利用ください。<br />
         </p>
-        <div className="mt-4 rounded-xl border border-slate-200 bg-pink-100 p-4">
+
+        {/* <div className="mt-4 rounded-xl border border-slate-200 bg-pink-100 p-4">
           <p className="text-sm mb-4 text-center sm:text-left">
             以下のような背景が白色の画像に対応しています。
           </p>
@@ -417,7 +418,7 @@ function App() {
               ))}
             </div>
           </div>
-        </div>
+        </div> */}
 
         <input
           ref={inputRef}
@@ -444,7 +445,7 @@ function App() {
             onClick={() => inputRef.current?.click()}
             className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400"
           >
-            ファイルを選択
+            ファイルを選択<br/>（400×400px以上）
           </button>
         </div>
 
@@ -580,7 +581,7 @@ function App() {
 
         {/* 操作パネル */}
         {previewUrl && workerResult?.width && workerResult?.height ? (
-          <div className="mt-5 rounded-xl bg-white/95 backdrop-blur-sm border border-slate-200 shadow-md p-3">
+          <div className="mt-5 mb-5 rounded-xl bg-white/95 backdrop-blur-sm border border-slate-200 shadow-md p-3">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -647,6 +648,89 @@ function App() {
             </div>
           </div>
         ) : null}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* =LOVE */}
+          <div className="rounded-xl border-2 p-5 bg-white shadow-sm" style={{ borderColor: "#f4b7cf" }}>
+            <h3 className="font-bold text-lg mb-3" style={{ color: "#d86d9a" }}>
+              =LOVE
+            </h3>
+
+            <div className="flex md:flex-col gap-2">
+              <a
+                href="https://store.plusmember.jp/equallove/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-blue-600 hover:underline flex-initial md:flex-none w-1/2 md:w-auto"
+              >
+                🛒 OFFICIAL SHOP
+              </a>
+
+              <a
+                href="https://equal-love.jp/news/list/9"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-blue-600 hover:underline flex-initial md:flex-none w-1/2 md:w-auto"
+              >
+                ✉️ NEWS
+              </a>
+            </div>
+          </div>
+
+          {/* ≠ME */}
+          <div className="rounded-xl border-2 p-5 bg-white shadow-sm" style={{ borderColor: "#a9dbe6" }}>
+            <h3 className="font-bold text-lg mb-3" style={{ color: "#4fa7bb" }}>
+              ≠ME
+            </h3>
+
+            <div className="flex md:flex-col gap-2">
+              <a
+                href="https://store.plusmember.jp/notequalme/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-blue-600 hover:underline flex-initial md:flex-none w-1/2 md:w-auto"
+              >
+                🛒 OFFICIAL SHOP
+              </a>
+
+              <a
+                href="https://not-equal-me.jp/news/list/1/9/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-blue-600 hover:underline flex-initial md:flex-none w-1/2 md:w-auto"
+              >
+                ✉️ NEWS
+              </a>
+            </div>
+          </div>
+
+          {/* =JOY */}
+          <div className="rounded-xl border-2 p-5 bg-white shadow-sm" style={{ borderColor: "#f3e19f" }}>
+            <h3 className="font-bold text-lg mb-3" style={{ color: "#c9a82e" }}>
+              =JOY
+            </h3>
+
+            <div className="flex md:flex-col gap-2">
+              <a
+                href="https://store.plusmember.jp/nearlyequaljoy/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-blue-600 hover:underline flex-initial md:flex-none w-1/2 md:w-auto"
+              >
+                🛒 OFFICIAL SHOP
+              </a>
+
+              <a
+                href="https://nearly-equal-joy.jp/news/list/1/9/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-blue-600 hover:underline flex-initial md:flex-none w-1/2 md:w-auto"
+              >
+                ✉️ NEWS
+              </a>
+            </div>
+          </div>
+        </div>
       </section>
 
     </main>
