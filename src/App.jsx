@@ -67,6 +67,7 @@ function App() {
     else if (label === '9') return `${basePath}9.png`
     else if (label === '10') return `${basePath}10.png`
     else if (label === 'download') return `${basePath}download.png`
+    else if (label === 'x-logo') return `${basePath}x-logo.png`
     else if (label === undefined || label === 0 || label === '') return null
     return null
   }
@@ -388,7 +389,7 @@ function App() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-20">
+    <main className="min-h-screen bg-slate-50">
       <header className="w-full bg-[linear-gradient(90deg,#f4b7cf_0%,#f4b7cf_20%,#a9dbe6_40%,#a9dbe6_60%,#f3e19f_80%,#f3e19f_100%)] p-[10px] text-white">
         <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-8">
           <h1 className="mt-2 text-2xl md:text-3xl font-bold text-white">トレード画像作成ツール</h1>
@@ -732,6 +733,32 @@ function App() {
           </div>
         </div>
       </section>
+      <footer className="mt-10 border-t border-slate-200 bg-white">
+        <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-8 text-center">
+          
+          {/* 説明文 */}
+          <p className="mb-3 text-sm text-slate-600">
+            バグ報告・機能要望はこちら
+          </p>
+
+          {/* Xボタン */}
+          <a
+            href="https://x.com/parsley1130_equ"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800 hover:scale-105 hover:shadow-lg"
+          >
+            <img
+              src={assetPathForLabel('x-logo')}
+              alt="X"
+              className="h-4 w-4 invert"
+            />
+            @parsley1130_equ
+          </a>
+
+        </div>
+      </footer>
+
 
     </main>
   )
